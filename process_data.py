@@ -8,41 +8,41 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from dotenv import load_dotenv
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
 
-load_dotenv()
+from dotenv import load_dotenv; load_dotenv()
+
 
 CACHE_DIRECTORY = "data/raw"
 PROCESSED_DIRECTORY = "data/processed"
 IMAGE_HEIGHT = IMAGE_WIDTH = 50
 
-class DataLabel(enum.Enum): 
-    TID = 0
-    RPS = 1
-    ISO = 2
+class DataLabel(enum.Flag): 
+    TID = enum.auto()
+    RPS = enum.auto()
+    ISO = enum.auto()
 
-class FeatureType(enum.Enum):
-    gas_density = 0
-    gas_kinematics = 1
-    star_density = 2
-    star_kinematics = 3
+class FeatureType(enum.Flag):
+    gas_density = enum.auto()
+    gas_kinematics = enum.auto()
+    star_density = enum.auto()
+    star_kinematics = enum.auto()
 
-class GroupType(enum.Enum):
-    m1 = 0
-    m2 = 1
-    m3 = 2
-    m4 = 3
-    m4a = 4
-    m5 = 5
-    m5a = 6
-    m6 = 7
-    m6a = 8
-    m7 = 9
-    m8 = 10
-    m9 = 11
+class GroupType(enum.Flag):
+    m1 = enum.auto()
+    m2 = enum.auto()
+    m3 = enum.auto()
+    m4 = enum.auto()
+    m4a = enum.auto()
+    m5 = enum.auto()
+    m5a = enum.auto()
+    m6 = enum.auto()
+    m6a = enum.auto()
+    m7 = enum.auto()
+    m8 = enum.auto()
+    m9 = enum.auto()
 
 def sha256sum(file_name):
     h  = hashlib.sha256()
@@ -189,6 +189,9 @@ class ProcessedDataset:
         yaml.dump(metadata, metadata_file)
         output_file.add(metadata_file.name, arcname=f"metadata.yml")
     
+    def exists(self):
+        return self.file_path.exists()
+    
     def process_dataset(self):
         output_file = tarfile.open(self.file_path, "w:gz")
 
@@ -202,6 +205,8 @@ class ProcessedDataset:
         output_file.close()
 
 if __name__=="__main__":
+    from dotenv import load_dotenv; load_dotenv()
+
     raw_datasets = []
     
     # Load raw datasets
