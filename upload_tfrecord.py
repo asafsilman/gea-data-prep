@@ -37,4 +37,5 @@ if __name__=="__main__":
 
         blob_uri = f"{os.environ['TF_RECORDS_BUCKET']}/{selected_dir.name}/{name}"
         blob = Blob.from_string(blob_uri, client=client)
+        blob.chunk_size = 1024 * 1024 * 10
         blob.upload_from_filename(str(path))

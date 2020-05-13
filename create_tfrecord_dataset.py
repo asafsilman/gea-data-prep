@@ -10,6 +10,8 @@ from process_data import FeatureType, GroupType, DataLabel, ProcessedDataset
 import tensorflow as tf
 import numpy as np
 
+MAX_RECORDS_PER_FILE = 1500
+
 TF_RECORDS_DIRECTORY = "data/tfrecords"
 PROCESSED_DIRECTORY = "data/processed"
 
@@ -142,7 +144,9 @@ class TFDataset:
         dataset_dir = Path(TF_RECORDS_DIRECTORY) / dataset_name
         dataset_dir.mkdir(exist_ok=True)
 
-        writer_options = tf.io.TFRecordOptions(compression_type="GZIP")
+        writer_options = tf.io.TFRecordOptions(
+            # compression_type="GZIP"
+        )
         
         def get_writer(file_num):
             return tf.io.TFRecordWriter(
@@ -161,7 +165,7 @@ class TFDataset:
 
             tf_example.SerializeToString()
             examples_written += 1
-            if examples_written > 100:
+            if examples_written > MAX_RECORDS_PER_FILE:
                 examples_written = 0
                 file_num += 1
                 writer = get_writer(file_num)
@@ -171,5 +175,5 @@ if __name__=="__main__":
     dataset = TFDataset(EXPERIMENT_GROUPS, EXPERIMENT_FEATURES)
     image_data, label_data = dataset.extract_data()
 
-    dataset.create_dataset(image_data, label_data)
+    dataset.create_dataset(image_data, label_data, "gea-m1m2m3-gas_densitygas_kinematicsstar_density-uc")
 
