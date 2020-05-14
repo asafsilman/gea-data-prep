@@ -175,5 +175,5 @@ if __name__=="__main__":
     dataset = TFDataset(EXPERIMENT_GROUPS, EXPERIMENT_FEATURES)
     image_data, label_data = dataset.extract_data()
 
-    dataset.create_dataset(image_data, label_data, "gea-m1m2m3-gas_densitygas_kinematicsstar_density-uc")
+    dataset.create_dataset(image_data, label_data)
 

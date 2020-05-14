@@ -2,10 +2,11 @@ import os
 from pathlib import Path
 
 from google.cloud import storage
-from google.cloud.storage import Blob
+from google.cloud.storage import Blob, Bucket
 
 from dotenv import load_dotenv; load_dotenv()
 
+CHUNK_SIZE = 262144 * 4 * 5 # 256kb * 4 ~= 1 MB
 TF_RECORDS_DIRECTORY = "data/tfrecords"
 
 if __name__=="__main__":
@@ -35,7 +36,8 @@ if __name__=="__main__":
         name = path.name
         print(f"Uploading {name} to bucket")
 
-        blob_uri = f"{os.environ['TF_RECORDS_BUCKET']}/{selected_dir.name}/{name}"
-        blob = Blob.from_string(blob_uri, client=client)
-        blob.chunk_size = 1024 * 1024 * 10
+        blob_name = f"{selected_dir.name}/{name}"
+
+        bucket = Bucket.from_string(os.environ['TF_RECORDS_BUCKET'], client=client)
+        blob = Blob(blob_name, bucket, chunk_size=CHUNK_SIZE)
         blob.upload_from_filename(str(path))
