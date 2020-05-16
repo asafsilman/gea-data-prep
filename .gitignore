@@ -4,3 +4,5 @@ env/
 
 data/**/*.tar.gz
 data/**/*.tfrecords
+
+__pycache__/
