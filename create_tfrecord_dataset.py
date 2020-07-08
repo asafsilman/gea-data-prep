@@ -10,13 +10,14 @@ from process_data import FeatureType, GroupType, DataLabel, ProcessedDataset
 import tensorflow as tf
 import numpy as np
 
-MAX_RECORDS_PER_FILE = 1500
+MAX_RECORDS_PER_FILE = 150
+MAX_FORCE_VALUE = 10
 
 TF_RECORDS_DIRECTORY = "data/tfrecords"
 PROCESSED_DIRECTORY = "data/processed"
 
-EXPERIMENT_GROUPS = GroupType.m1 | GroupType.m2 | GroupType.m3
-EXPERIMENT_FEATURES = FeatureType.gas_density | FeatureType.gas_kinematics | FeatureType.star_density
+EXPERIMENT_GROUPS = GroupType.m6
+EXPERIMENT_FEATURES = FeatureType.star_density | FeatureType.gas_density
 
 def one_hot(a, num_classes):
   return np.squeeze(np.eye(num_classes)[a.reshape(-1)])
@@ -75,10 +76,12 @@ class TFDataset:
 
                 image_data = label_feature_data.setdefault('image_data_raw', [])
                 label_data = label_feature_data.setdefault('label_data_raw', [])
+                force_data = label_feature_data.setdefault('force_data_raw', [])
 
                 # due to bug in numpy, must read to bytes io https://github.com/numpy/numpy/issues/7989
                 image_data_bytes = BytesIO()
                 label_data_bytes = BytesIO()
+                force_data_bytes = BytesIO()
                 
                 image_data_bytes.write(archive.extractfile(
                     metadata['files'][label]['image']['file_name']
@@ -86,12 +89,17 @@ class TFDataset:
                 label_data_bytes.write(archive.extractfile(
                     metadata['files'][label]['label']['file_name']
                 ).read())
+                force_data_bytes.write(archive.extractfile(
+                    metadata['files'][label]['force']['file_name']
+                ).read())
 
                 image_data_bytes.seek(0)
                 label_data_bytes.seek(0)
+                force_data_bytes.seek(0)
 
                 image_data.append(np.load(image_data_bytes))
                 label_data.append(np.load(label_data_bytes))
+                force_data.append(np.load(force_data_bytes))
 
         return feature_data
 
@@ -107,34 +115,54 @@ class TFDataset:
                     axis=-1
                 )
 
+                label_data = source_data[label]["label_data_raw"][0].astype(np.int)
                 source_data[label]["label_data"] = one_hot(
-                    source_data[label]["label_data_raw"][0].astype(np.int),
+                    label_data,
                     len(DataLabel)
                 )
 
+                # Extract force data from source
+                force_data = source_data[label]["force_data_raw"][0].astype(np.float64)
+                # The force data will be represented as a 1x3 data frame. Representing the force of each effect
+                # At the moment only the index representing the label will be populated with data
+                force_df = np.zeros(
+                    (force_data.shape[0], len(DataLabel))
+                )
+
+                # Add force data to dataframe in the label index
+                force_df[:, label_data[0]] = force_data
+
+                # Normalise the data
+                force_df = force_df / MAX_FORCE_VALUE
+                source_data[label]["force_data"] = force_df
+
                 extracted_sources.setdefault('image_data', []).append(source_data[label]["image_data"])
                 extracted_sources.setdefault('label_data', []).append(source_data[label]["label_data"])
+                extracted_sources.setdefault('force_data', []).append(source_data[label]["force_data"])
 
         # Return extracted data
         img = extracted_sources['image_data']
         lbl = extracted_sources['label_data']
+        frc = extracted_sources['force_data']
         
         return \
             np.vstack(img), \
-            np.vstack(lbl)
+            np.vstack(lbl), \
+            np.vstack(frc)
 
-    def _serialise_features(self, image, label):
+    def _serialise_features(self, image, label, force):
         features = {
             "image/height": _int64_feature(image.shape[0]),
             "image/width": _int64_feature(image.shape[1]),
             "image/channels": _int64_feature(image.shape[2]),
             "image/label": _bytes_feature(label.tobytes()),
+            "image/force": _bytes_feature(force.tobytes()),
             "image/data": _bytes_feature(image.tobytes()),
         }
 
         return tf.train.Example(features=tf.train.Features(feature=features))
 
-    def create_dataset(self, image_data, label_data, dataset_name=None):
+    def create_dataset(self, image_data, label_data, force_data, dataset_name=None):
         indexes = list(range(image_data.shape[0]))
         shuffle(indexes)
 
@@ -159,8 +187,9 @@ class TFDataset:
         for idx in indexes:
             image = image_data[idx]
             label = label_data[idx]
+            force = force_data[idx]
 
-            tf_example = self._serialise_features(image, label)
+            tf_example = self._serialise_features(image, label, force)
             writer.write(tf_example.SerializeToString())
 
             tf_example.SerializeToString()
@@ -173,7 +202,7 @@ class TFDataset:
 
 if __name__=="__main__":
     dataset = TFDataset(EXPERIMENT_GROUPS, EXPERIMENT_FEATURES)
-    image_data, label_data = dataset.extract_data()
+    image_data, label_data, force_data = dataset.extract_data()
 
-    dataset.create_dataset(image_data, label_data)
+    dataset.create_dataset(image_data, label_data, force_data)
 
