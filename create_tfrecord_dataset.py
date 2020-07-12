@@ -16,7 +16,7 @@ MAX_FORCE_VALUE = 10
 TF_RECORDS_DIRECTORY = "data/tfrecords"
 PROCESSED_DIRECTORY = "data/processed"
 
-EXPERIMENT_GROUPS = GroupType.m6
+EXPERIMENT_GROUPS = GroupType.m3
 EXPERIMENT_FEATURES = FeatureType.star_density | FeatureType.gas_density
 
 def one_hot(a, num_classes):
@@ -123,18 +123,10 @@ class TFDataset:
 
                 # Extract force data from source
                 force_data = source_data[label]["force_data_raw"][0].astype(np.float64)
-                # The force data will be represented as a 1x3 data frame. Representing the force of each effect
-                # At the moment only the index representing the label will be populated with data
-                force_df = np.zeros(
-                    (force_data.shape[0], len(DataLabel))
-                )
-
-                # Add force data to dataframe in the label index
-                force_df[:, label_data[0]] = force_data
 
                 # Normalise the data
-                force_df = force_df / MAX_FORCE_VALUE
-                source_data[label]["force_data"] = force_df
+                force_data = force_data / MAX_FORCE_VALUE
+                source_data[label]["force_data"] = force_data
 
                 extracted_sources.setdefault('image_data', []).append(source_data[label]["image_data"])
                 extracted_sources.setdefault('label_data', []).append(source_data[label]["label_data"])

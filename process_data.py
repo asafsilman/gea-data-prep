@@ -16,10 +16,10 @@ CACHE_DIRECTORY = "data/raw"
 PROCESSED_DIRECTORY = "data/processed"
 IMAGE_HEIGHT = IMAGE_WIDTH = 50
 
-class DataLabel(enum.Flag): 
-    TID = enum.auto()
-    RPS = enum.auto()
-    ISO = enum.auto()
+class DataLabel(enum.Enum): 
+    TID = 0
+    RPS = 1
+    ISO = 2
 
 class FeatureType(enum.Flag):
     gas_density = enum.auto()
@@ -77,14 +77,15 @@ class FileMetaData:
 
 class RawDatasetMetaData:
     def __init__(self, file_metadata, label, feature_type, data_group,
-                image_file_name, label_file_name, num_rows):
+                image_file_name, rps_force_file_name, tid_force_file_name, num_rows):
         self.file_metadata = file_metadata
         self.data_label = DataLabel[label]
         self.feature_type = FeatureType[feature_type]
         self.data_group_type = GroupType[data_group]
 
         self.image_file_name = image_file_name
-        self.label_file_name = label_file_name
+        self.rps_force_file_name = rps_force_file_name
+        self.tid_force_file_name = tid_force_file_name
         self.num_rows = int(num_rows)
     
     def __str__(self):
@@ -126,14 +127,18 @@ class ProcessedDataset:
                 np.save(image_file, image_data)
                 
                 # Extract force data
-                force_data = np.loadtxt(f.extractfile(dataset.label_file_name))
-                force_data = force_data.reshape(dataset.num_rows)
+                rps_force_data = np.loadtxt(f.extractfile(dataset.rps_force_file_name))
+                tid_force_data = np.loadtxt(f.extractfile(dataset.tid_force_file_name))
+                
+                # Stack rps and tid force data into one dataframe
+                force_data = np.column_stack([rps_force_data, tid_force_data])
+                force_data = force_data.reshape(dataset.num_rows, 2)
 
                 force_file = tempfile.NamedTemporaryFile("wb")
                 np.save(force_file, force_data)
 
                 # Process label data
-                label_data = np.zeros_like(force_data)
+                label_data = np.zeros([dataset.num_rows, 1])
                 label_data.fill(dataset.data_label.value)
                 
                 label_file = tempfile.NamedTemporaryFile("wb")
@@ -206,7 +211,8 @@ if __name__=="__main__":
                 feature_type=data["dataSimType"],
                 data_group=data["dataSetLabel"],
                 image_file_name=data["imageFileName"],
-                label_file_name=data["labelFileName"],
+                rps_force_file_name=data["rpsForceFileName"],
+                tid_force_file_name=data["tidForceFileName"],
                 num_rows=data["imageFileNumRows"]
             )
             raw_datasets.append(raw_dataset)
