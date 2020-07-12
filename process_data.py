@@ -8,9 +8,6 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from google.api_core.exceptions import GoogleAPIError
-from google.cloud import storage
-from google.cloud.storage.blob import Blob
 
 from dotenv import load_dotenv; load_dotenv()
 
@@ -54,8 +51,6 @@ def sha256sum(file_name):
     return h.hexdigest()
 
 class FileMetaData:
-    client = storage.Client()
-
     def __init__(self, file_name, file_hash):
         self.file_name = file_name
         self.file_hash = file_hash
@@ -68,17 +63,6 @@ class FileMetaData:
                 return True
         return False
 
-    def _download_to_cache(self) -> bool:
-        blob_uri = f"{os.environ['RAW_DATA_BUCKET']}/{self.file_name}"
-
-        blob = Blob.from_string(blob_uri, client=self.client)
-        try:
-            blob.download_to_filename(self.file_path)
-        except GoogleAPIError:
-            return False
-
-        return self._file_in_cache()
-
     def file_accessible(self) -> bool:
         """Checks if the file is locally accessible.
         If it is not, attempt to download from GCP and checksum
@@ -88,7 +72,8 @@ class FileMetaData:
         """
         if self._file_in_cache():
             return True
-        return self._download_to_cache()
+        print(f"{self.file_name} is missing")
+        return False
 
 class RawDatasetMetaData:
     def __init__(self, file_metadata, label, feature_type, data_group,
