@@ -40,6 +40,7 @@ class GroupType(enum.Flag):
     m7 = enum.auto()
     m8 = enum.auto()
     m9 = enum.auto()
+    m10 = enum.auto()
 
 def sha256sum(file_name):
     h  = hashlib.sha256()
@@ -102,9 +103,9 @@ class ProcessedDataset:
 
         self.file_path = Path(PROCESSED_DIRECTORY) / f"{self.group_type.name}.{self.feature_type.name}.tar.gz"
 
-    def valid_dataset(self) -> bool:
+    def valid_dataset(self, ignore_labels=False) -> bool:
         # Check that all labels in dataset
-        if len(self.raw_data) != len(DataLabel):
+        if len(self.raw_data) != len(DataLabel) and not ignore_labels:
             return False
         
         # Check that all files have the same number of rows

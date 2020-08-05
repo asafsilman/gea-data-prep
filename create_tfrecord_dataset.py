@@ -11,13 +11,12 @@ import tensorflow as tf
 import numpy as np
 
 MAX_RECORDS_PER_FILE = 150
-MAX_FORCE_VALUE = 10
 
 TF_RECORDS_DIRECTORY = "data/tfrecords"
 PROCESSED_DIRECTORY = "data/processed"
 
-EXPERIMENT_GROUPS = GroupType.m3
-EXPERIMENT_FEATURES = FeatureType.star_density | FeatureType.gas_density
+EXPERIMENT_GROUPS = GroupType.m10
+EXPERIMENT_FEATURES = FeatureType.gas_density |FeatureType.gas_kinematics
 
 def one_hot(a, num_classes):
   return np.squeeze(np.eye(num_classes)[a.reshape(-1)])
@@ -124,8 +123,6 @@ class TFDataset:
                 # Extract force data from source
                 force_data = source_data[label]["force_data_raw"][0].astype(np.float64)
 
-                # Normalise the data
-                force_data = force_data / MAX_FORCE_VALUE
                 source_data[label]["force_data"] = force_data
 
                 extracted_sources.setdefault('image_data', []).append(source_data[label]["image_data"])
