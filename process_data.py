@@ -39,8 +39,11 @@ class GroupType(enum.Flag):
     m6a = enum.auto()
     m7 = enum.auto()
     m8 = enum.auto()
+    m8a = enum.auto()
     m9 = enum.auto()
     m10 = enum.auto()
+    m10a = enum.auto()
+    m11 = enum.auto()
 
 def sha256sum(file_name):
     h  = hashlib.sha256()
@@ -103,13 +106,16 @@ class ProcessedDataset:
 
         self.file_path = Path(PROCESSED_DIRECTORY) / f"{self.group_type.name}.{self.feature_type.name}.tar.gz"
 
+    def _get_num_rows(self):
+        return min(data.num_rows for data in self.raw_data)
+    
     def valid_dataset(self, ignore_labels=False) -> bool:
         # Check that all labels in dataset
         if len(self.raw_data) != len(DataLabel) and not ignore_labels:
             return False
         
         # Check that all files have the same number of rows
-        num_rows_0 = self.raw_data[0].num_rows
+        num_rows_0 = self._get_num_rows()
         if not all([x.num_rows == num_rows_0 for x in self.raw_data]):
             return False
 
@@ -166,7 +172,7 @@ class ProcessedDataset:
     def _add_metadata(self, datasets_metadata, output_file):
         metadata_file = tempfile.NamedTemporaryFile("w")
 
-        num_rows_0 = self.raw_data[0].num_rows
+        num_rows_0 = self._get_num_rows()
 
         metadata = {}
         metadata["files"] = datasets_metadata
@@ -234,7 +240,10 @@ if __name__=="__main__":
                 )
             )
 
+            if group not in  (GroupType.m1, GroupType.m2, GroupType.m3, GroupType.m4, GroupType.m5, GroupType.m6): continue
+            if feature_type not in (FeatureType.star_kinematics): continue
+
             processed_dataset = ProcessedDataset(raw_dataset_group, group, feature_type)
-            if processed_dataset.valid_dataset():
+            if processed_dataset.valid_dataset(ignore_labels=True):
                 print(f"Processing group: {group.name}-{feature_type.name}")
                 processed_dataset.process_dataset()

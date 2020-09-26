@@ -15,8 +15,8 @@ MAX_RECORDS_PER_FILE = 150
 TF_RECORDS_DIRECTORY = "data/tfrecords"
 PROCESSED_DIRECTORY = "data/processed"
 
-EXPERIMENT_GROUPS = GroupType.m10
-EXPERIMENT_FEATURES = FeatureType.gas_density |FeatureType.gas_kinematics
+EXPERIMENT_GROUPS = GroupType.m6
+EXPERIMENT_FEATURES = FeatureType.gas_density | FeatureType.gas_kinematics | FeatureType.star_density | FeatureType.star_kinematics
 
 def one_hot(a, num_classes):
   return np.squeeze(np.eye(num_classes)[a.reshape(-1)])
@@ -121,6 +121,14 @@ class TFDataset:
                 )
 
                 # Extract force data from source
+                ## DELETE THIS CODE
+                # _force_data_RPS = source_data["RPS"]["force_data_raw"][0][:,0]
+                # _force_data_TID = source_data["TID"]["force_data_raw"][0][:,1]
+
+                # force_data = np.stack([_force_data_RPS, _force_data_TID], axis=-1)
+                # source_data[label]["image_data"] = source_data[label]["image_data"][:]
+                # source_data[label]["label_data"] = source_data[label]["label_data"][:]
+
                 force_data = source_data[label]["force_data_raw"][0].astype(np.float64)
 
                 source_data[label]["force_data"] = force_data
